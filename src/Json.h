@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+#include <string>
 #include <ArduinoJson.h>
 
 namespace EDUtils

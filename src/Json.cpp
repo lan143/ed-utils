@@ -1,9 +1,11 @@
+#include <algorithm>
+#include <cstring>
 #include "Json.h"
 
 bool EDUtils::parseJson(const char* data, const json_parse_t &f)
 {
     const size_t free_heap = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
-    size_t request_size = std::min(free_heap, (size_t) (strlen(data) * 1.5));
+    size_t request_size = std::min(free_heap, (size_t) (std::strlen(data) * 1.5));
 
     while (true) {
         DynamicJsonDocument json_document(request_size);
@@ -28,7 +30,7 @@ bool EDUtils::parseJson(const char* data, const json_parse_t &f)
             return false;
         }
     };
-  
+
     return false;
 }
 
@@ -50,7 +52,7 @@ std::string EDUtils::buildJson(const json_build_t &f)
             if (request_size == free_heap) {
                 return "{}";
             }
-      
+    
             request_size = std::min(request_size * 2, free_heap);
             continue;
         }

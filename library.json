@@ -1,0 +1,24 @@
+{
+    "name": "ed-utils",
+    "keywords": "iot, home, automation, esp32",
+    "description": "Some utils functions for Arduino ESP32 and other",
+    "authors":
+    {
+      "name": "Artem Kravchenko",
+      "url": "https://lan143.ru"
+    },
+    "repository":
+    {
+      "type": "git",
+      "url": "https://github.com/lan143/ed-utils.git"
+    },
+    "version": "0.1.0",
+    "frameworks": "arduino",
+    "platforms": ["espressif32"],
+    "dependencies": [
+      {
+        "name": "ArduinoJSON"
+      }
+    ]
+  }
+  

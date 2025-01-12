@@ -35,7 +35,8 @@ namespace EDUtils
     *
     * @return Indicates if the operation succeeded, or why it failed.
     */
-    str2int_errno str2int(int *out, const char *s, int base) {
+    str2int_errno str2int(int *out, const char *s, int base)
+    {
         char *end;
         if (s[0] == '\0' || isspace(s[0]))
             return STR2INT_INCONVERTIBLE;
@@ -49,6 +50,29 @@ namespace EDUtils
         if (*end != '\0')
             return STR2INT_INCONVERTIBLE;
         *out = l;
+        return STR2INT_SUCCESS;
+    }
+
+    str2int_errno str2float(float_t* out, const char* str)
+    {
+        if (str == nullptr || *str == '\0') {
+            return STR2INT_INCONVERTIBLE;
+        }
+
+        char* endPtr;
+        errno = 0;
+        float_t result = strtof(str, &endPtr);
+
+        if (errno == ERANGE) {
+            return STR2INT_OVERFLOW;
+        }
+
+        if (*endPtr != '\0') {
+            return STR2INT_INCONVERTIBLE;
+        }
+
+        *out = result;
+
         return STR2INT_SUCCESS;
     }
 }

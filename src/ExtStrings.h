@@ -6,6 +6,10 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string>
+#include <vector>
+#include <cstdarg>
+#include <stdexcept>
 
 namespace EDUtils
 {
@@ -35,44 +39,10 @@ namespace EDUtils
     *
     * @return Indicates if the operation succeeded, or why it failed.
     */
-    str2int_errno str2int(int *out, const char *s, int base)
-    {
-        char *end;
-        if (s[0] == '\0' || isspace(s[0]))
-            return STR2INT_INCONVERTIBLE;
-        errno = 0;
-        long l = strtol(s, &end, base);
-        /* Both checks are needed because INT_MAX == LONG_MAX is possible. */
-        if (l > INT_MAX || (errno == ERANGE && l == LONG_MAX))
-            return STR2INT_OVERFLOW;
-        if (l < INT_MIN || (errno == ERANGE && l == LONG_MIN))
-            return STR2INT_UNDERFLOW;
-        if (*end != '\0')
-            return STR2INT_INCONVERTIBLE;
-        *out = l;
-        return STR2INT_SUCCESS;
-    }
+    str2int_errno str2int(int *out, const char *s, int base);
+    
+    str2int_errno str2float(float_t* out, const char* str);
 
-    str2int_errno str2float(float_t* out, const char* str)
-    {
-        if (str == nullptr || *str == '\0') {
-            return STR2INT_INCONVERTIBLE;
-        }
-
-        char* endPtr;
-        errno = 0;
-        float_t result = strtof(str, &endPtr);
-
-        if (errno == ERANGE) {
-            return STR2INT_OVERFLOW;
-        }
-
-        if (*endPtr != '\0') {
-            return STR2INT_INCONVERTIBLE;
-        }
-
-        *out = result;
-
-        return STR2INT_SUCCESS;
-    }
+    extern std::string formatString(const char* format, ...);
+    extern std::vector<std::string> split(const std::string& input, const std::string& delimiter);
 }

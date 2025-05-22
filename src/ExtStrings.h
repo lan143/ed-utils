@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Arduino.h>
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>

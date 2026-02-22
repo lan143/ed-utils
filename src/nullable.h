@@ -7,6 +7,7 @@ namespace EDUtils
         T _value;
         bool _valid;
 
+        Nullable() : _valid(false) {}
         Nullable(bool valid, T value) : _valid(valid), _value(value) {}
 
         bool Valid() const { return _valid; }

@@ -38,15 +38,7 @@ namespace EDUtils
             _buffers[1].reserve(LOG_BUFFER_SIZE);
         }
 
-        void init(LogConfig config)
-        {
-            if (strlen(config.host) == 0 || strlen(config.uri) == 0 || config.port == 0) {
-                return;
-            }
-
-            _config = config;
-            _init = true;
-        }
+        void init(LogConfig config, std::string system, std::string instance);
 
         void addLogRecord(const char* message)
         {
@@ -57,31 +49,7 @@ namespace EDUtils
             }
         }
 
-        void update()
-        {
-            if ((_lastUpdateTime + LOG_FLUSH_TIME) < esp_timer_get_time()) {
-                if (_init && _enable) {
-                    std::string ready;
-                    {
-                        std::lock_guard<std::mutex> lock(_mutex);
-                        const int readIndex = _writeIndex;
-                        _writeIndex ^= 1;
-                        ready.swap(_buffers[readIndex]);
-                    }
-
-                    HTTPClient http;
-                    http.begin(_config.host, _config.port, _config.uri);
-                    http.addHeader("Content-Type", "text/plain");
-                    int statusCode = http.POST(ready.c_str());
-                    if (statusCode != 200) {
-                        LOGE("log", "failed to send logs. code: %d", statusCode);
-                    }
-                    http.end();
-                }
-
-                _lastUpdateTime = esp_timer_get_time();
-            }
-        }
+        void update();
 
         void enable(bool enable)
         {
@@ -90,6 +58,9 @@ namespace EDUtils
 
     private:
         LogConfig _config;
+        std::string _system;
+        std::string _instance;
+
         uint64_t _lastUpdateTime = 0;
         std::string _buffers[2];
         uint8_t _writeIndex = 0;

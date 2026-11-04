@@ -18,6 +18,9 @@
     "dependencies": [
       {
         "name": "ArduinoJSON"
+      },
+      {
+        "name": "ESP32Async/ESPAsyncWebServer"
       }
     ]
   }

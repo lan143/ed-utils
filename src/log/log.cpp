@@ -43,20 +43,42 @@ void EDUtils::NetworkLogger::init(EDUtils::LogConfig config, std::string system,
     _init = true;
 }
 
+bool EDUtils::NetworkLogger::setConfig(const EDUtils::LogConfig& config)
+{
+    if (strlen(config.host) == 0 || strlen(config.uri) == 0 || config.port == 0) {
+        return false;
+    }
+
+    std::lock_guard<std::mutex> lock(_mutex);
+    _config = config;
+    _init = true;
+
+    return true;
+}
+
 void EDUtils::NetworkLogger::update()
 {
     if ((_lastUpdateTime + LOG_FLUSH_TIME) < esp_timer_get_time()) {
-        if (_init && _enable) {
-            std::string ready;
-            {
-                std::lock_guard<std::mutex> lock(_mutex);
+        LogConfig config;
+        bool enabled = false;
+        bool initialized = false;
+        std::string ready;
+        {
+            std::lock_guard<std::mutex> lock(_mutex);
+            config = _config;
+            enabled = _enable;
+            initialized = _init;
+
+            if (initialized && enabled) {
                 const int readIndex = _writeIndex;
                 _writeIndex ^= 1;
                 ready.swap(_buffers[readIndex]);
             }
+        }
 
+        if (initialized && enabled) {
             HTTPClient http;
-            http.begin(_config.host, _config.port, _config.uri);
+            http.begin(config.host, config.port, config.uri);
             http.addHeader("Content-Type", "text/plain");
             http.addHeader("X-SYSTEM", _system.c_str());
             http.addHeader("X-INSTANCE", _instance.c_str());

@@ -183,6 +183,59 @@ void loop() { networkLogger.update(); }
 `update()` отправляет данные не чаще, чем раз в 10 секунд (`LOG_FLUSH_TIME`
 равен 10 000 000 микросекунд), с заголовками `X-SYSTEM` и `X-INSTANCE`.
 
+#### HTTP API настроек логгера
+
+Заголовочный обработчик `src/log/log_handlers.hpp` (зависимость **ESPAsyncWebServer**)
+публикует настройки логгера по адресу `/api/log/settings`:
+
+- `GET /api/log/settings` — текущие значения.
+- `POST /api/log/settings` — применить новые значения.
+
+Тело запроса и ответа — один и тот же JSON-объект:
+
+```json
+{"host": "192.168.1.10", "uri": "/logs", "port": 8080, "enabled": true}
+```
+
+Поля: `host` и `uri` — непустые строки короче `LOG_HOST_LEN`, `port` — целое в
+диапазоне 1..65535, `enabled` — необязательное булево (если не передано,
+текущее значение не меняется). `POST` требует `Content-Type: application/json`.
+Ошибки валидации полей возвращаются как JSON `{"message": "..."}` с кодом 422;
+пустое тело, некорректный JSON или тело больше 1024 байт отклоняются
+библиотекой ESPAsyncWebServer с кодами 400/413 без JSON-тела.
+
+```cpp
+#include <log/log_handlers.hpp>
+
+AsyncWebServer server(80);
+EDUtils::LogSettingsHandler logSettings(networkLogger);
+logSettings.registerHandlers(&server);
+```
+
+Поля `system`/`instance` задаются только в `init()` и через API не редактируются.
+
+Сохранение настроек опционально: колбэк `onApplied(...)` вызывается после применения
+настроек в контексте задачи AsyncWebServer с новыми действующими значениями
+(`config`, `enabled`). Вернув `false`, прошивка сигнализирует о сбое сохранения —
+ответ будет `500 {"message": "failed to store settings"}`, при этом применённые
+значения остаются активны. Без колбэка настройки не сохраняются и живут только
+в runtime-состоянии `NetworkLogger`.
+
+```cpp
+logSettings.onApplied([&configMgr](const EDUtils::LogConfig& config, bool enabled) {
+    configMgr.getData()->log = config;
+    configMgr.getData()->logEnabled = enabled;
+    return configMgr.store();
+});
+```
+
+`logEnabled` — пример поля в Config прошивки; если такого поля нет, можно сохранять
+только `host`/`uri`/`port`.
+
+Для управления этими настройками из веб-интерфейса в `frontend/` есть пакет
+`edu-log-ui`: Lit-элемент `<edu-log-settings-page>` с формой `host`/`uri`/`port`/`enabled`.
+Подробности подключения — в `frontend/INTEGRATION.md`.
+
 ### Version
 
 Разбор semver-строки и сравнение версий (глобальное пространство имён, без `EDUtils`).

@@ -51,8 +51,23 @@ namespace EDUtils
 
         void update();
 
+        LogConfig getConfig()
+        {
+            std::lock_guard<std::mutex> lock(_mutex);
+            return _config;
+        }
+
+        bool setConfig(const LogConfig& config);
+
+        bool isEnabled()
+        {
+            std::lock_guard<std::mutex> lock(_mutex);
+            return _enable;
+        }
+
         void enable(bool enable)
         {
+            std::lock_guard<std::mutex> lock(_mutex);
             _enable = enable;
         }
 

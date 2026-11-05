@@ -12,7 +12,7 @@
       "type": "git",
       "url": "https://github.com/lan143/ed-utils.git"
     },
-    "version": "0.1.0",
+    "version": "0.3.0",
     "frameworks": "arduino",
     "platforms": ["espressif32"],
     "dependencies": [

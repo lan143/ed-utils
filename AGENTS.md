@@ -8,7 +8,7 @@ Operating guide for AI agents working in this repository.
   home-automation project family.
 - Stack: PlatformIO library, C++ (Arduino ESP32), dependency **ArduinoJson v6**.
 - Version source of truth: `library.json` **and** `library.properties` (both currently
-  `0.1.0`). Bump both in the same change and add an annotated git tag.
+  `0.3.0`). Bump both in the same change and add an annotated git tag.
 - The `Version` / `parseVersion` API is a **runtime semver parser**, not the library
   version. Do not tie it to the manifest version.
 

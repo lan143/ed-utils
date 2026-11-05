@@ -21,13 +21,18 @@ table below).
 | --- | --- | --- | --- |
 | `GET` | `/api/log/settings` | `Accept: application/json` | `200` `{"host":"…","uri":"…","port":8080,"enabled":true}` |
 | `POST` | `/api/log/settings` | JSON body `{"host":"…","uri":"…","port":8080,"enabled":true}`, `Content-Type: application/json` | `200` echoing the **current** state (same shape); `422` with `{"message":"…"}` on field-validation failure; `500` with `{"message":"failed to store settings"}` when the firmware persistence callback fails (applied values stay active); bare `400` (empty/malformed JSON) and bare `413` (body over 1024 bytes), both without a `{"message":"…"}` body |
+| `GET` | `/api/log/stats` | `Accept: application/json` | `200` `{"recordsProduced":…,"recordsDropped":…,"batchesSent":…,"batchesFailed":…,"bytesSent":…,"lastHttpStatus":…,"ringFreeBytes":…}` |
+
+`/api/log/stats` returns runtime-only counters from `NetworkLogger::getStats()`;
+they are not persisted and reset on reboot.
 
 Field constraints: `host` and `uri` are non-empty strings shorter than
 `LOG_HOST_LEN` (64), so at most 63 characters each; `port` is an integer in
 `1..65535`; `enabled` is a boolean. Known device error messages, all sent as
 `{"message":"…"}` with status `422`, include `invalid json`,
-`host is required`, `host too long`, `uri is required`, `uri too long`,
-`invalid port`, `invalid enabled` and `invalid settings`. A `500` with
+`host is required`, `host too long`, `invalid host`, `uri is required`,
+`uri too long`, `invalid uri`, `invalid port`, `invalid enabled` and
+`invalid settings`. A `500` with
 `{"message":"failed to store settings"}` is returned when the firmware
 persistence callback reports failure; the applied values remain active in that
 case. Malformed or empty JSON is rejected by ESPAsyncWebServer with a bare

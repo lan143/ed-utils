@@ -21,10 +21,20 @@ Operating guide for AI agents working in this repository.
 - `src/state/state_producer.h` — pure-virtual `StateProducer<T>::publish(T*)`.
 - `src/state/state_mgr.{h,hpp}` — `StateMgr<T>`: 500 ms change-publishing loop.
 - `src/log/log_config.h` — `LogConfig` (`host`, `uri`, `port`).
-- `src/log/log.{h,cpp}` — log macros, `NetworkLogger`, global `networkLogger`.
+- `src/log/log_options.h` — compile-time `LOG_NET_*` options (ring/chunk/line
+  sizes, timeouts, sender task, backoff, filters).
+- `src/log/log_format.{h,cpp}` — pure, host-testable normalization, level
+  detection and dropped-marker helpers.
+- `src/log/log.{h,cpp}` — log macros, `NetworkLogger` (vprintf hook -> NOSPLIT
+  ring -> `netlog` sender task; public API includes `applySettings`, `getStats`,
+  `setNetworkReadyCheck`) and the single global `networkLogger`.
+- `src/log/log_handlers.hpp` — `LogSettingsHandler` for `/api/log/settings` and
+  `/api/log/stats`.
+- `tests/host/` — C++11 host unit tests for `src/log/log_format.cpp`.
 - `src/version/version.{h,cpp}` — global `Version` comparisons and `parseVersion`.
 - Root manifests: `library.json` (PlatformIO), `library.properties` (Arduino IDE).
-- No `platformio.ini`, `examples/`, `tests/`, CI, or LICENSE in this repo.
+- No `platformio.ini`, `examples/`, CI, or LICENSE in this repo; executable host
+  tests live in `tests/host/`.
 
 ## Commands
 
@@ -36,10 +46,19 @@ Use `rtk` as the output-condensing proxy (see `RTK.md` for the full cheatsheet).
 - Git: `rtk git status`, `rtk git log --oneline -10`, `rtk git diff`, `rtk git branch`.
 - Review: `rtk diff`.
 
-### Validation (compile is the only gate)
+### Validation (host tests + consumer compile)
 
 PlatformIO Core is installed globally (`pio` / `platformio`); nothing to install in
-this repo. There are no tests, no linter, and no CI, so a compile check is the gate.
+this repo. There is no linter or CI. The gates are the host unit tests plus a
+consumer compile check.
+
+Run the host tests first (C++11, no ESP32 required):
+
+```sh
+sh tests/host/run_host_tests.sh
+```
+
+Then compile the library in a throwaway consumer project:
 
 1. Create a throwaway consumer project **outside** this repo:
 
@@ -88,8 +107,20 @@ library root just to build it.
   yields `false` / `"{}"`. Preserve these bounds when touching `Json.cpp`.
 - **Single logger definition.** `networkLogger` is defined once in `src/log/log.cpp`
   (`extern` declaration in `log.h`). Never instantiate another one — ODR/link errors.
-- **`LOG_FLUSH_TIME` is microseconds** (`10000000` = 10 s), compared against
-  `esp_timer_get_time()`. It is not milliseconds.
+- **The vprintf hook is allocation- and lock-free.** It runs in whichever task
+  called `esp_log_write`: never add `std::string`, `new`/`malloc`, mutexes, `LOGx`
+  or blocking calls to that path. It formats into a stack buffer and only uses a
+  non-blocking ring send.
+- **Ring lifecycle.** Created once in `init()` (`RINGBUF_TYPE_NOSPLIT`,
+  `LOG_NET_RING_SIZE`) and never recreated or grown. A later `init()` only updates
+  config/system/instance and retries missing resources.
+- **Sender task.** Named `netlog`, stack `LOG_NET_TASK_STACK`. Success is any 2xx;
+  failure retries the same batch/`X-SEQ` with backoff
+  `LOG_NET_BACKOFF_MIN_MS`..`LOG_NET_BACKOFF_MAX_MS`. Its own log output is
+  excluded from the hook, so there is no feedback loop.
+- **Legacy logger macros.** `LOG_BUFFER_SIZE` and `LOG_FLUSH_TIME` remain only for
+  source compatibility; the new core uses `LOG_NET_*` from `log_options.h` and
+  ignores them. `update()` is a deprecated no-op.
 - **StateMgr cadence.** Compares states every `loop()` but publishes at most every
   500 ms and only on change; a `false` return retries next cycle. `T` needs
   `operator!=` and copy assignment.
@@ -103,7 +134,8 @@ library root just to build it.
 ## Change checklist
 
 1. Modify `src/` only as needed; keep unrelated files untouched.
-2. Run the compile check above (`rtk err pio run`).
+2. Run the host tests and the compile check above
+   (`sh tests/host/run_host_tests.sh`, `rtk err pio run`).
 3. If the public API changed, update the matching `README.md` module section.
 4. If releasing, bump **both** `library.json` and `library.properties`, then tag.
 5. Never conflate the library version with the `Version` runtime parser.
